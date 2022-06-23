@@ -67,8 +67,11 @@ async def quiz_2(call: types.CallbackQuery):
 
 @dp.message_handler()
 async def echo(message: types.Message):
-    await bot.send_message(message.from_user.id, message.text)
-    await bot.send_message(message.from_user.id, int(message.text) ** 2)
+    try
+        await bot.send_message(message.from_user.id, message.text)
+        await bot.send_message(message.from_user.id, int(message.text) ** 2)
+    except:
+        await bot.send_message(message.from_user.id('tolko numnbers')
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
