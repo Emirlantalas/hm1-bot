@@ -1,78 +1,42 @@
-from aiogram import types
+
+import asyncio
 from aiogram.utils import executor
-from aiogram.types import ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
-from config import bot, dp
+from handlers import extra, client, admin, callback, fsm_anketa, notification, inline
+
+from config import dp, bot, URL
 import logging
-
-@dp.message_handler(commands=['start'])
-async def command_start(message: types.Message):
-    await bot.send_message(message.from_user.id, f"hello my master{message.from_user.full_name}")
-
-@dp.message_handler(commands=['mem'])
-async def pic(message: types.Message):
-    photo = open("media/4-6.jpg", 'rb')
-    await bot.send_photo(message.from_user.id, photo=photo)
-
-@dp.message_handler(commands=['quiz'])
-async def quiz_1(message: types.Message):
-
-    markup = InlineKeyboardMarkup()
-    button_call_1 = InlineKeyboardButton(
-        "NEXT",
-        callback_data='button_call_1'
-    )
-    markup.add(button_call_1)
-
-    question ='В какой из следующих империй не было письменности?'
-    answers = [
-        'ИНКОВ', 'АЦТЕКОВ', 'ЕГИПТЯН', 'РИМЛЯН'
-    ]
-    await bot.send_poll(
-        chat_id=message.chat.id,
-        question=question,
-        options=answers,
-        is_anonymous=False,
-        type='quiz',
-        correct_option_id=0,
-        explanation="ДУМАЙ БРО",
-        explanation_parse_mode=ParseMode.MARKDOWN_V2,
-        reply_markup=markup
-    )
-
-@dp.callback_query_handler(lambda call: call.data == "button_call_1")
-async def quiz_2(call: types.CallbackQuery):
-    markup = InlineKeyboardMarkup()
-    button_call_2 = InlineKeyboardButton(
-        "NEXT",
-        callback_data='button_call_1'
-    )
-    markup.add(button_call_2)
-
-    question = 'Кто такой Benito Musalini'
-    answers = [
-        'канцлер', 'безумный безумец', 'диктатор', 'маршал'
-    ]
-    await bot.send_poll(
-        chat_id=call.message.chat.id,
-        question=question,
-        options=answers,
-        is_anonymous=False,
-        type='quiz',
-        correct_option_id=1,
-        explanation="ДУМАЙ БРО",
-        explanation_parse_mode=ParseMode.MARKDOWN_V2,
-        reply_markup=markup
-    )
+from database.bot_db import sql_create
+#from decouple import
 
 
-@dp.message_handler()
-async def echo(message: types.Message):
-    try
-        await bot.send_message(message.from_user.id, message.text)
-        await bot.send_message(message.from_user.id, int(message.text) ** 2)
-    except:
-        await bot.send_message(message.from_user.id('tolko numnbers')
+async def on_startup(_):
+    await bot.set_webhook(URL)
+    asyncio.create_task(notification.scheduler())
+    sql_create()
+
+async def on_shutdown(dp):
+    await bot.delete_webhook()
+
+admin.register_handlers_admin(dp)
+fsm_anketa.register_handler_fsmanketa(dp)
+client.register_handlers_client(dp)
+callback.register_handlers_callback(dp)
+notification.register_handler_notification(dp)
+inline.register_inline_handler(dp)
+
+
+extra.register_handlers_extra(dp)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    executor.start_polling(dp, skip_updates=True)
+    #executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
+    executor.start_webhook(
+        dispatcher=dp,
+        webhook_path="",
+        on_startup=on_startup,
+        on_shutdown=on_shutdown,
+        skip_updates=True,
+        host='0.0.0.0',
+        port=config("PORT", cast=int)
+
+    )
